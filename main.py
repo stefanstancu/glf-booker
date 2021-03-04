@@ -18,40 +18,32 @@ def f_url(club: str, date: str):
     return f'https://www.goodlifefitness.com/content/goodlife/en/book-workout/jcr:content/root/responsivegrid/workoutbooking.GetWorkoutSlots.{club}.{date}.json'
 
 
+print('Running at ' + str(datetime.now()))
 no_auth = False
 s = requests.Session()
 # Auth
-# Check for valid cookies
-if os.path.exists(cookie_fp):
-    with open(cookie_fp, 'rb') as f:
-        s.cookies.update(pickle.load(f))
-
-    expiry = next(x for x in s.cookies if x.name == 'secureLoginToken').expires
-    if time.time() < expiry:
-        no_auth = True
-
-if not no_auth:
-    r = s.post(auth_url, {'login': cred.user, 'passwordParameter': cred.password})
-    print(f'login: {r.status_code}')
+r = s.post(auth_url, {'login': cred.user, 'passwordParameter': cred.password})
+print(f'login: {r.status_code}')
 
 # Request workout slot list
-date = (datetime.now() + timedelta(days=6)).strftime("%Y-%m-%d")
+date = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d")
 url = f_url(337, date) # just the one club for now
 r = s.get(url)
 slots = r.json()['map']['response'][0]['workouts']
 
 # Book the workout
 # book from the 3rd time slot down, depending on availability
+delay = 1
 for time_slot_id in [x['identifier'] for x in (slots[3:] + slots[:3])]:
     r = s.post(book_url, {'clubId': 337, 'timeSlotId': time_slot_id})
-    if r.status_code != 200:
-        print(r.json()['map']['response']['message'])
-    else:
-        break
-
-# Save the cookie
-if not no_auth:
-    with open(cookie_fp, 'wb+') as f:
-        pickle.dump(s.cookies, f)
+    print(f'attemping to book @ {str(datetime.now())} in {delay}s intervals ...')
+    cnt = 0
+    while r.status_code != 200 and cnt < 200:
+        r = s.post(book_url, {'clubId': 337, 'timeSlotId': time_slot_id})
+        cnt += 1
+        print(f'attempt: {r.json()}')
+        time.sleep(delay)
+    print('successfully booked:' + str(r.json()))
+    break
 
 s.close()
