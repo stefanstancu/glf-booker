@@ -1,11 +1,12 @@
 import requests
 import json
-import cred
 import os
 import pickle
 
 import time
 from datetime import datetime, timedelta
+
+import cred
 
 cookie_fp = 'cookies.ck'
 clubs = ['337', '351', '257']
@@ -26,7 +27,7 @@ r = s.post(auth_url, {'login': cred.user, 'passwordParameter': cred.password})
 print(f'login: {r.status_code}')
 
 # Request workout slot list
-date = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d")
+date = (datetime.now() + timedelta(days=3)).strftime("%Y-%m-%d")
 url = f_url(337, date) # just the one club for now
 r = s.get(url)
 slots = r.json()['map']['response'][0]['workouts']
